@@ -1,124 +1,296 @@
-# username - ofribooblil
-# id1      - 325118891
-# name1    - ofri booblil
-# id2      - complete info
-# name2    - roni bitan
+# AVLTree.py
 
-
-"""A class represnting a node in an AVL tree"""
-
-
-class AVLNode(object):
-    """Constructor, you are allowed to add more fields.
-
-    @type key: int or None
-    @param key: key of your node
-    @type value: string
-    @param value: data of your node
-    """
-
+class AVLNode:
     def __init__(self, key, value):
         self.key = key
         self.value = value
         self.left = None
         self.right = None
         self.parent = None
-        self.height = -1
-
-    """returns whether self is not a virtual node 
-
-    @rtype: bool
-    @returns: False if self is a virtual node, True otherwise.
-    """
+        self.height = 1 if key is not None else 0
 
     def is_real_node(self):
-        return False
+        return self.key is not None
+
+    def get_key(self):
+        return self.key
+
+    def get_value(self):
+        return self.value
+
+    def _update_height_node(self):
+        self.height = 1 + max(self.left.height, self.right.height)
+
+    def rotate_L(self):
+        y = self.right
+        self.right = y.left
+        if y.left.is_real_node():
+            y.left.parent = self
+        y.parent = self.parent
+        y.left = self
+        self.parent = y
+        self._update_height_node()
+        y._update_height_node()
+        return y
+
+    def rotate_R(self):
+        y = self.left
+        self.left = y.right
+        if y.right.is_real_node():
+            y.right.parent = self
+        y.parent = self.parent
+        y.right = self
+        self.parent = y
+        self._update_height_node()
+        y._update_height_node()
+        return y
+
+    def rotate_LR(self):
+        self.left = self.left.rotate_L()
+        self.left.parent = self
+        return self.rotate_R()
+
+    def rotate_RL(self):
+        self.right = self.right.rotate_R()
+        self.right.parent = self
+        return self.rotate_L()
 
 
-"""
-A class implementing an AVL tree.
-"""
-
-
-class AVLTree(object):
-    """
-    Constructor, you are allowed to add more fields.
-
-    """
-
+class AVLTree:
     def __init__(self):
-        self.root = None
+        self.virtual = AVLNode(None, None)
+        self.virtual.left = self.virtual.right = self.virtual.parent = self.virtual
+        self.virtual.height = 0
 
-    """searches for a node in the dictionary corresponding to the key
+        self.root = self.virtual
+        self.max_node = self.virtual
+        self._size = 0
 
-    @type key: int
-    @param key: a key to be searched
-    @rtype: AVLNode
-    @returns: node corresponding to key
-    """
+        self._inorder_cache = []
+        self._cache_valid = False
 
-    def search(self, key):
-        return None
-
-    """inserts a new node into the dictionary with corresponding key and value
-
-    @type key: int
-    @pre: key currently does not appear in the dictionary
-    @param key: key of item that is to be inserted to self
-    @type val: string
-    @param val: the value of the item
-    @param start: can be either "root" or "max"
-    @rtype: int
-    @returns: the number of rebalancing operation due to AVL rebalancing
-    """
-
-    def insert(self, key, val, start="root"):
-        return -1
-
-    """deletes node from the dictionary
-
-    @type node: AVLNode
-    @pre: node is a real pointer to a node in self
-    @rtype: int
-    @returns: the number of rebalancing operation due to AVL rebalancing
-    """
-
-    def delete(self, node):
-        return -1
-
-    """returns an array representing dictionary 
-
-    @rtype: list
-    @returns: a sorted list according to key of touples (key, value) representing the data structure
-    """
-
-    def avl_to_array(self):
-        return None
-
-    """returns the number of items in dictionary 
-
-    @rtype: int
-    @returns: the number of items in dictionary 
-    """
-
-    def size(self):
-        return -1
-
-    """returns the root of the tree representing the dictionary
-
-    @rtype: AVLNode
-    @returns: the root, None if the dictionary is empty
-    """
+        # for simple tests expecting attribute access
+        self.get_root = None
 
     def get_root(self):
+        return None if not self.root.is_real_node() else self.root
+
+    def size(self):
+        return self._size
+
+    def get_size(self):
+        return self._size
+
+    def search(self, key):
+        node = self.root
+        while node.is_real_node():
+            if key == node.key:
+                return node
+            node = node.left if key < node.key else node.right
         return None
 
+    def _update_height(self, node):
+        node.height = 1 + max(node.left.height, node.right.height)
 
-"""gets amir's suggestion of balance factor
+    def _balance_factor(self, node):
+        return node.left.height - node.right.height
 
-@returns: the number of nodes which have balance factor equals to 0 devided by the total number of nodes
-"""
+    def _rotate_left(self, z):
+        y = z.right
+        z.right = y.left
+        if y.left.is_real_node():
+            y.left.parent = z
+        y.parent = z.parent
+        if z.parent == self.virtual:
+            self.root = y
+        elif z == z.parent.left:
+            z.parent.left = y
+        else:
+            z.parent.right = y
+        y.left = z
+        z.parent = y
+        self._update_height(z)
+        self._update_height(y)
+        return y
 
+    def _rotate_right(self, z):
+        y = z.left
+        z.left = y.right
+        if y.right.is_real_node():
+            y.right.parent = z
+        y.parent = z.parent
+        if z.parent == self.virtual:
+            self.root = y
+        elif z == z.parent.right:
+            z.parent.right = y
+        else:
+            z.parent.left = y
+        y.right = z
+        z.parent = y
+        self._update_height(z)
+        self._update_height(y)
+        return y
 
-def get_amir_balance_factor(self):
-    return None
+    def _rebalance_with_count(self, node):
+        count = 0
+        while node != self.virtual:
+            self._update_height(node)
+            bf = self._balance_factor(node)
+            if bf > 1:
+                if self._balance_factor(node.left) < 0:
+                    self._rotate_left(node.left); count += 1
+                    self._rotate_right(node); count += 1
+                else:
+                    self._rotate_right(node); count += 1
+            elif bf < -1:
+                if self._balance_factor(node.right) > 0:
+                    self._rotate_right(node.right); count += 1
+                    self._rotate_left(node);      count += 1
+                else:
+                    self._rotate_left(node);      count += 1
+            node = node.parent
+        return count
+
+    def insert(self, key, val, start="root"):
+        """
+        Insert key,val or overwrite existing.
+        Returns rotation count.
+        """
+        # Invalidate cache
+        self._cache_valid = False
+
+        # If tree empty, simple insert
+        if not self.root.is_real_node():
+            z = AVLNode(key, val)
+            z.left = z.right = self.virtual
+            z.parent = self.virtual
+            self.root = z
+            self.max_node = z
+            self._size = 1
+            self.get_root = self.root
+            return 0
+
+        # Start from root or max
+        current = self.max_node if start=="max" and self.max_node.is_real_node() else self.root
+
+        # BST walk, checking for duplicates
+        parent = self.virtual
+        node = current
+        while node.is_real_node():
+            parent = node
+            if key == node.key:
+                node.value = val  # overwrite
+                self.get_root = self.root
+                return 0
+            node = node.left if key < node.key else node.right
+
+        # Not found, create new
+        z = AVLNode(key, val)
+        z.left = z.right = self.virtual
+        z.parent = parent
+        if key < parent.key:
+            parent.left = z
+        else:
+            parent.right = z
+
+        self._size += 1
+        if key > self.max_node.key:
+            self.max_node = z
+
+        # Rebalance from parent
+        ops = self._rebalance_with_count(parent)
+        self.get_root = self.root
+        return ops
+
+    def delete(self, node):
+        if node is None or not node.is_real_node():
+            return 0
+        # Invalidate cache
+        self._cache_valid = False
+
+        # Find y
+        if not node.left.is_real_node() or not node.right.is_real_node():
+            y = node
+        else:
+            y = node.right
+            while y.left.is_real_node():
+                y = y.left
+
+        x = y.left if y.left.is_real_node() else y.right
+        x.parent = y.parent
+        if y.parent == self.virtual:
+            self.root = x
+        elif y == y.parent.left:
+            y.parent.left = x
+        else:
+            y.parent.right = x
+
+        if y != node:
+            node.key = y.key
+            node.value = y.value
+
+        self._size -= 1
+        if node == self.max_node:
+            if self._size == 0:
+                self.max_node = self.virtual
+            else:
+                m = self.root
+                while m.right.is_real_node():
+                    m = m.right
+                self.max_node = m
+
+        ops = self._rebalance_with_count(x.parent)
+        self.get_root = self.root if self.root.is_real_node() else None
+        return ops
+
+    def avl_to_array(self):
+        if self._cache_valid:
+            return list(self._inorder_cache)
+        res = []
+        def inorder(n):
+            if not n.is_real_node():
+                return
+            inorder(n.left)
+            res.append((n.key, n.value))
+            inorder(n.right)
+        inorder(self.root)
+        self._inorder_cache = res
+        self._cache_valid = True
+        return list(res)
+
+    def get_predecessor(self, node):
+        if node.left.is_real_node():
+            n = node.left
+            while n.right.is_real_node():
+                n = n.right
+            return n
+        y = node.parent
+        while y != self.virtual and node == y.left:
+            node, y = y, y.parent
+        return None if y == self.virtual else y
+
+    def get_successor(self, node):
+        if node.right.is_real_node():
+            n = node.right
+            while n.left.is_real_node():
+                n = n.left
+            return n
+        y = node.parent
+        while y != self.virtual and node == y.right:
+            node, y = y, y.parent
+        return None if y == self.virtual else y
+
+    def get_amir_balance_factor(self):
+        if self._size == 0:
+            return 0.0
+        count0 = 0
+        def dfs(n):
+            nonlocal count0
+            if not n.is_real_node():
+                return
+            if self._balance_factor(n) == 0:
+                count0 += 1
+            dfs(n.left)
+            dfs(n.right)
+        dfs(self.root)
+        return count0 / self._size
