@@ -1,5 +1,9 @@
 # AVLTree.py
-
+# username - ofribooblil
+# id1      - 325118891
+# name1    - ofri booblil
+# id2      - complete info
+# name2    - roni bitan
 class AVLNode:
     def __init__(self, key, value):
         self.key = key
@@ -101,14 +105,17 @@ class AVLTree:
         if y.left.is_real_node():
             y.left.parent = z
         y.parent = z.parent
+
         if z.parent == self.virtual:
             self.root = y
         elif z == z.parent.left:
             z.parent.left = y
         else:
             z.parent.right = y
+
         y.left = z
         z.parent = y
+
         self._update_height(z)
         self._update_height(y)
         return y
@@ -119,14 +126,17 @@ class AVLTree:
         if y.right.is_real_node():
             y.right.parent = z
         y.parent = z.parent
+
         if z.parent == self.virtual:
             self.root = y
         elif z == z.parent.right:
             z.parent.right = y
         else:
             z.parent.left = y
+
         y.right = z
         z.parent = y
+
         self._update_height(z)
         self._update_height(y)
         return y
@@ -138,16 +148,20 @@ class AVLTree:
             bf = self._balance_factor(node)
             if bf > 1:
                 if self._balance_factor(node.left) < 0:
+                    # LR
                     self._rotate_left(node.left); count += 1
-                    self._rotate_right(node); count += 1
+                    self._rotate_right(node);     count += 1
                 else:
-                    self._rotate_right(node); count += 1
+                    # LL
+                    self._rotate_right(node);     count += 1
             elif bf < -1:
                 if self._balance_factor(node.right) > 0:
+                    # RL
                     self._rotate_right(node.right); count += 1
-                    self._rotate_left(node);      count += 1
+                    self._rotate_left(node);        count += 1
                 else:
-                    self._rotate_left(node);      count += 1
+                    # RR
+                    self._rotate_left(node);        count += 1
             node = node.parent
         return count
 
@@ -156,10 +170,9 @@ class AVLTree:
         Insert key,val or overwrite existing.
         Returns rotation count.
         """
-        # Invalidate cache
         self._cache_valid = False
 
-        # If tree empty, simple insert
+        # empty tree?
         if not self.root.is_real_node():
             z = AVLNode(key, val)
             z.left = z.right = self.virtual
@@ -170,21 +183,21 @@ class AVLTree:
             self.get_root = self.root
             return 0
 
-        # Start from root or max
-        current = self.max_node if start=="max" and self.max_node.is_real_node() else self.root
+        # pick start
+        current = self.max_node if start == "max" and self.max_node.is_real_node() else self.root
 
-        # BST walk, checking for duplicates
+        # walk BST, check duplicates
         parent = self.virtual
         node = current
         while node.is_real_node():
             parent = node
             if key == node.key:
-                node.value = val  # overwrite
+                node.value = val
                 self.get_root = self.root
                 return 0
             node = node.left if key < node.key else node.right
 
-        # Not found, create new
+        # insert new node
         z = AVLNode(key, val)
         z.left = z.right = self.virtual
         z.parent = parent
@@ -197,7 +210,6 @@ class AVLTree:
         if key > self.max_node.key:
             self.max_node = z
 
-        # Rebalance from parent
         ops = self._rebalance_with_count(parent)
         self.get_root = self.root
         return ops
@@ -205,10 +217,8 @@ class AVLTree:
     def delete(self, node):
         if node is None or not node.is_real_node():
             return 0
-        # Invalidate cache
         self._cache_valid = False
 
-        # Find y
         if not node.left.is_real_node() or not node.right.is_real_node():
             y = node
         else:
@@ -218,6 +228,7 @@ class AVLTree:
 
         x = y.left if y.left.is_real_node() else y.right
         x.parent = y.parent
+
         if y.parent == self.virtual:
             self.root = x
         elif y == y.parent.left:
@@ -244,6 +255,10 @@ class AVLTree:
         return ops
 
     def avl_to_array(self):
+        """
+        In-order list of (key,value).
+        Best: O(1) cache; Worst: O(n); Amortized: O(1) after first
+        """
         if self._cache_valid:
             return list(self._inorder_cache)
         res = []
@@ -259,6 +274,10 @@ class AVLTree:
         return list(res)
 
     def get_predecessor(self, node):
+        """
+        Largest key < node.key, or None.
+        Best: O(1); Worst: O(log n)
+        """
         if node.left.is_real_node():
             n = node.left
             while n.right.is_real_node():
@@ -270,6 +289,10 @@ class AVLTree:
         return None if y == self.virtual else y
 
     def get_successor(self, node):
+        """
+        Smallest key > node.key, or None.
+        Best: O(1); Worst: O(log n)
+        """
         if node.right.is_real_node():
             n = node.right
             while n.left.is_real_node():
@@ -281,6 +304,10 @@ class AVLTree:
         return None if y == self.virtual else y
 
     def get_amir_balance_factor(self):
+        """
+        Fraction of nodes with balance factor 0.
+        Time: Θ(n) each call.
+        """
         if self._size == 0:
             return 0.0
         count0 = 0
