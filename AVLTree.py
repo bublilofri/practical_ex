@@ -2,7 +2,7 @@
 # username - ofribooblil
 # id1      - 325118891
 # name1    - ofri booblil
-# id2      - complete info
+# id2      - 214203747
 # name2    - roni bitan
 class AVLNode:
     def __init__(self, key, value):
@@ -11,7 +11,7 @@ class AVLNode:
         self.left = None
         self.right = None
         self.parent = None
-        self.height = 1 if key is not None else 0
+        self.height = 0
 
     def is_real_node(self):
         return self.key is not None
@@ -64,11 +64,12 @@ class AVLTree:
     def __init__(self):
         self.virtual = AVLNode(None, None)
         self.virtual.left = self.virtual.right = self.virtual.parent = self.virtual
-        self.virtual.height = 0
+        self.virtual.height = -1
 
         self.root = self.virtual
         self.max_node = self.virtual
         self._size = 0
+        self._bf0_count = 0
 
         self._inorder_cache = []
         self._cache_valid = False
@@ -144,9 +145,18 @@ class AVLTree:
     def _rebalance_with_count(self, node):
         count = 0
         while node != self.virtual:
+            old_bf = self._balance_factor(node)
+            old_height = node.height
+
             self._update_height(node)
-            bf = self._balance_factor(node)
-            if bf > 1:
+            new_bf = self._balance_factor(node)
+
+            if old_bf == 0 and new_bf != 0:
+                self._bf0_count -= 1
+            elif old_bf != 0 and new_bf == 0:
+                self._bf0_count += 1
+
+            if new_bf > 1:
                 if self._balance_factor(node.left) < 0:
                     # LR
                     self._rotate_left(node.left); count += 1
@@ -154,14 +164,18 @@ class AVLTree:
                 else:
                     # LL
                     self._rotate_right(node);     count += 1
-            elif bf < -1:
+            elif new_bf < -1:
                 if self._balance_factor(node.right) > 0:
                     # RL
                     self._rotate_right(node.right); count += 1
                     self._rotate_left(node);        count += 1
                 else:
                     # RR
-                    self._rotate_left(node);        count += 1
+                    self._rotate_left(node);       count += 1
+            elif node.height != old_height:
+                count += 1 
+            else:
+                break
             node = node.parent
         return count
 
@@ -172,7 +186,7 @@ class AVLTree:
         """
         self._cache_valid = False
 
-        # empty tree?
+        # if empty tree
         if not self.root.is_real_node():
             z = AVLNode(key, val)
             z.left = z.right = self.virtual
@@ -181,6 +195,7 @@ class AVLTree:
             self.max_node = z
             self._size = 1
             self.get_root = self.root
+            self._bf0_count = 1
             return 0
 
         # pick start
@@ -205,7 +220,8 @@ class AVLTree:
             parent.left = z
         else:
             parent.right = z
-
+        
+        self._bf0_count += 1    
         self._size += 1
         if key > self.max_node.key:
             self.max_node = z
@@ -239,6 +255,10 @@ class AVLTree:
         if y != node:
             node.key = y.key
             node.value = y.value
+        
+        old_bf = self._balance_factor(y)
+        if old_bf == 0:
+            self._bf0_count -= 1
 
         self._size -= 1
         if node == self.max_node:
@@ -260,7 +280,7 @@ class AVLTree:
         Best: O(1) cache; Worst: O(n); Amortized: O(1) after first
         """
         if self._cache_valid:
-            return list(self._inorder_cache)
+            return self._inorder_cache
         res = []
         def inorder(n):
             if not n.is_real_node():
@@ -271,7 +291,7 @@ class AVLTree:
         inorder(self.root)
         self._inorder_cache = res
         self._cache_valid = True
-        return list(res)
+        return res
 
     def get_predecessor(self, node):
         """
@@ -303,21 +323,25 @@ class AVLTree:
             node, y = y, y.parent
         return None if y == self.virtual else y
 
+    # def get_amir_balance_factor(self):
+    #     """
+    #     Fraction of nodes with balance factor 0.
+    #     Time: Θ(n) each call.
+    #     """
+    #     if self._size == 0:
+    #         return 0.0
+    #     count0 = 0
+    #     def dfs(n):
+    #         nonlocal count0
+    #         if not n.is_real_node():
+    #             return
+    #         if self._balance_factor(n) == 0:
+    #             count0 += 1
+    #         dfs(n.left)
+    #         dfs(n.right)
+    #     dfs(self.root)
+    #     return count0 / self._size
     def get_amir_balance_factor(self):
-        """
-        Fraction of nodes with balance factor 0.
-        Time: Θ(n) each call.
-        """
         if self._size == 0:
             return 0.0
-        count0 = 0
-        def dfs(n):
-            nonlocal count0
-            if not n.is_real_node():
-                return
-            if self._balance_factor(n) == 0:
-                count0 += 1
-            dfs(n.left)
-            dfs(n.right)
-        dfs(self.root)
-        return count0 / self._size
+        return self._bf0_count / self._size
