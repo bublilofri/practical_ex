@@ -1,9 +1,9 @@
 # AVLTree.py
 # username - ofribooblil
 # id1      - 325118891
-# name1    - ofri booblil
+# name1    - Ofri Booblil
 # id2      - 214203747
-# name2    - roni bitan
+# name2    - Roni Bitan
 class AVLNode:
     def __init__(self, key, value):
         self.key = key
