@@ -195,7 +195,7 @@ class AVLTree:
             self.max_node = z
             self._size = 1
             self.get_root = self.root
-            self._bf0_count = 1
+            self._bf0_count = 1 if self._balance_factor(z) == 0 else 0
             return 0
 
         # pick start
@@ -220,14 +220,15 @@ class AVLTree:
             parent.left = z
         else:
             parent.right = z
+        self._update_height(z)
         
-        self._bf0_count += 1    
         self._size += 1
         if key > self.max_node.key:
             self.max_node = z
 
         ops = self._rebalance_with_count(parent)
         self.get_root = self.root
+        self._bf0_count = self._count_bf0_nodes()
         return ops
 
     def delete(self, node):
@@ -272,6 +273,7 @@ class AVLTree:
 
         ops = self._rebalance_with_count(x.parent)
         self.get_root = self.root if self.root.is_real_node() else None
+        self._bf0_count = self._count_bf0_nodes()
         return ops
 
     def avl_to_array(self):
@@ -293,55 +295,17 @@ class AVLTree:
         self._cache_valid = True
         return res
 
-    def get_predecessor(self, node):
-        """
-        Largest key < node.key, or None.
-        Best: O(1); Worst: O(log n)
-        """
-        if node.left.is_real_node():
-            n = node.left
-            while n.right.is_real_node():
-                n = n.right
-            return n
-        y = node.parent
-        while y != self.virtual and node == y.left:
-            node, y = y, y.parent
-        return None if y == self.virtual else y
-
-    def get_successor(self, node):
-        """
-        Smallest key > node.key, or None.
-        Best: O(1); Worst: O(log n)
-        """
-        if node.right.is_real_node():
-            n = node.right
-            while n.left.is_real_node():
-                n = n.left
-            return n
-        y = node.parent
-        while y != self.virtual and node == y.right:
-            node, y = y, y.parent
-        return None if y == self.virtual else y
-
-    # def get_amir_balance_factor(self):
-    #     """
-    #     Fraction of nodes with balance factor 0.
-    #     Time: Θ(n) each call.
-    #     """
-    #     if self._size == 0:
-    #         return 0.0
-    #     count0 = 0
-    #     def dfs(n):
-    #         nonlocal count0
-    #         if not n.is_real_node():
-    #             return
-    #         if self._balance_factor(n) == 0:
-    #             count0 += 1
-    #         dfs(n.left)
-    #         dfs(n.right)
-    #     dfs(self.root)
-    #     return count0 / self._size
     def get_amir_balance_factor(self):
         if self._size == 0:
             return 0.0
         return self._bf0_count / self._size
+
+    def _count_bf0_nodes(self):
+        def dfs(n):
+            if not n.is_real_node():
+                return 0
+            count = dfs(n.left) + dfs(n.right)
+            if self._balance_factor(n) == 0:
+                count += 1
+            return count
+        return dfs(self.root)
